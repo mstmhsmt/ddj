@@ -4,13 +4,13 @@
 from .common import VIRTUOSO_PORT
 
 BUFSIZE_TBL = {
-    2 : (170000, 130000),
-    4 : (340000, 250000),
-    8 : (680000, 500000),
-    16 : (1360000, 1000000),
-    32 : (2720000, 2000000),
-    48 : (4000000, 3000000),
-    64 : (5450000, 4000000),
+    2: (170000, 130000),
+    4: (340000, 250000),
+    8: (680000, 500000),
+    16: (1360000, 1000000),
+    32: (2720000, 2000000),
+    48: (4000000, 3000000),
+    64: (5450000, 4000000),
 }
 
 DEFAULT_BUFSIZES = BUFSIZE_TBL[8]
@@ -77,24 +77,25 @@ NumberOfBuffers = %(nbufs)d
 MaxDirtyBuffers = %(mdbufs)d
 
 [HTTPServer]
-ServerPort			= 8890
-ServerRoot			= /opt/virtuoso/vsp
-MaxClientConnections		= 10
-DavRoot				= DAV
+;ServerPort			= 8890
+;ServerRoot			= /opt/virtuoso/vsp
+;MaxClientConnections		= 10
+MaxClientConnections		= 0
+;DavRoot			= DAV
 EnabledDavVSP			= 0
 HTTPProxyEnabled		= 0
 TempASPXDir			= 0
-DefaultMailServer		= localhost:25
-ServerThreads			= 10
-MaxKeepAlives			= 10
-KeepAliveTimeout		= 10
-MaxCachedProxyConnections	= 10
-ProxyConnectionCacheTimeout	= 15
-HTTPThreadSize			= 280000
+;DefaultMailServer		= localhost:25
+;ServerThreads			= 10
+;MaxKeepAlives			= 10
+;KeepAliveTimeout		= 10
+;MaxCachedProxyConnections	= 10
+;ProxyConnectionCacheTimeout	= 15
+;HTTPThreadSize			= 280000
 HttpPrintWarningsInOutput	= 0
 Charset				= UTF-8
-MaintenancePage             	= atomic.html
-EnabledGzipContent          	= 1
+;MaintenancePage             	= atomic.html
+;EnabledGzipContent          	= 1
 
 [AutoRepair]
 BadParentLinks			= 0
@@ -131,14 +132,15 @@ DefaultQuery               	= select distinct ?Concept where {[] a ?Concept} LIM
 DeferInferenceRulesInit    	= 0
 '''
 
+
 def gen_ini(db_root, fact_root, ont_root, outfile, mem=4, port=VIRTUOSO_PORT):
     nbufs, mdbufs = BUFSIZE_TBL.get(mem, DEFAULT_BUFSIZES)
-    ini = INI_FMT % {'db_root':db_root,
-                     'port':port,
-                     'fact_root':fact_root,
-                     'ont_root':ont_root,
-                     'nbufs':nbufs,
-                     'mdbufs':mdbufs}
+    ini = INI_FMT % {'db_root': db_root,
+                     'port': port,
+                     'fact_root': fact_root,
+                     'ont_root': ont_root,
+                     'nbufs': nbufs,
+                     'mdbufs': mdbufs}
 
     with open(outfile, 'w') as f:
         f.write(ini)

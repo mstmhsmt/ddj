@@ -3,7 +3,7 @@
 '''
   setup_factbase.py
 
-  Copyright 2018-2021 Chiba Institute of Technology
+  Copyright 2018-2022 Chiba Institute of Technology
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -20,17 +20,22 @@
 
 __author__ = 'Masatomo Hashimoto <m.hashimoto@stair.center>'
 
-import sys
+# import sys
 import os
 import time
 import logging
 
-from .common import ONT_DIR, FB_DIR, WORK_DIR, FACT_DIR, DD_DIR, REFACT_DIR
+from .common import ONT_DIR, FB_DIR, WORK_DIR, FACT_DIR, REFACT_DIR
 from .common import VIRTUOSO_PW, VIRTUOSO_PORT
 from .misc import is_virtuoso_running, gen_password, rm, ensure_dir, clear_dirs
 
-from . import misc
+from . import misc, find_refactoring
 from . import virtuoso_ini
+
+from cca.ccautil import virtuoso, load_into_virtuoso, load_ont_into_virtuoso
+from cca.ccautil import materialize_supplementary_fact
+from cca.ccautil import materialize_fact, find_change_patterns
+from cca.ccautil.common import setup_logger
 
 ###
 
@@ -41,11 +46,7 @@ TEMP_DIRS = [
     FACT_DIR,
 ]
 
-FB_FILES = [ 'virtuoso'+x for x in ['-temp.db', '.db', '.log', '.pxa', '.trx', '.ini'] ]
-
-from cca.ccautil import virtuoso, load_into_virtuoso, load_ont_into_virtuoso, materialize_fact_for_refactoring
-from cca.ccautil import materialize_fact, find_refactoring, find_change_patterns
-from cca.ccautil.common import setup_logger
+FB_FILES = ['virtuoso'+x for x in ['-temp.db', '.db', '.log', '.pxa', '.trx', '.ini']]
 
 ###
 
@@ -76,23 +77,25 @@ def create_argparser(desc):
 
     return parser
 
+
 def set_status(mes):
     logger.info(mes)
 
 
 class FB(object):
-    def __init__(self, proj_id, mem=4, pw=VIRTUOSO_PW, port=VIRTUOSO_PORT, build_only=False, conf=None,
-                 set_status=set_status):
+    def __init__(self, proj_id, mem=4, pw=VIRTUOSO_PW, port=VIRTUOSO_PORT,
+                 build_only=False, conf=None,
+                 set_status=set_status, url_base_path='..'):
         self._proj_id = proj_id
         self._mem = mem
         self._port = port
 
-        if pw == None:
+        if pw is None:
             self._pw = gen_password()
         else:
             self._pw = pw
 
-        logger.info('pw=%s port=%d' % (self._pw, self._port))
+        logger.info('pw={} port={}'.format(self._pw, self._port))
 
         self._fb_dir = os.path.join(FB_DIR, self._proj_id)
         self._fact_dir = os.path.join(FACT_DIR, self._proj_id)
@@ -100,10 +103,11 @@ class FB(object):
         self._build_only = build_only
         self._conf = conf
         self.set_status = set_status
+        self._url_base_path = url_base_path
 
     def init_virtuoso(self, mem=4):
         stat = 0
-        if is_virtuoso_running():
+        if is_virtuoso_running(self._port):
             logger.warning('virtuoso is already running')
             stat = 1
         else:
@@ -134,8 +138,9 @@ class FB(object):
         return stat
 
     def start_virtuoso(self):
+        logger.info('starting virtuoso...')
         stat = 0
-        if is_virtuoso_running():
+        if is_virtuoso_running(self._port):
             logger.warning('virtuoso is already running')
             stat = 1
         else:
@@ -144,29 +149,34 @@ class FB(object):
             if rc != 0:
                 stat = 1
         return stat
+        logger.info('done.')
 
     def shutdown_virtuoso(self):
+        logger.info('shutting down virtuoso...')
         stat = 0
-        if is_virtuoso_running():
-            v = virtuoso.base(dbdir=self._fb_dir, pw=self._pw, port=self._port)
+        if is_virtuoso_running(self._port):
+            v = virtuoso.base(dbdir=self._fb_dir, port=self._port, pw=self._pw)
             rc = v.shutdown_server()
-            if rc != 0 or is_virtuoso_running():
+            if rc != 0 or is_virtuoso_running(self._port):
                 stat = 1
+        logger.info('done.')
         return stat
 
     def restart_virtuoso(self):
+        logger.info('restarting virtuoso...')
         time.sleep(6)
         self.shutdown_virtuoso()
         time.sleep(10)
         self.start_virtuoso()
         time.sleep(6)
+        logger.info('done.')
 
     def reset_virtuoso(self):
         stat = 0
-        if is_virtuoso_running():
+        if is_virtuoso_running(self._port):
             v = virtuoso.base(dbdir=self._fb_dir, pw=self._pw, port=self._port)
             rc = v.shutdown_server()
-            if rc != 0 or is_virtuoso_running():
+            if rc != 0 or is_virtuoso_running(self._port):
                 stat = 1
             else:
                 stat = self.clear_fb()
@@ -197,8 +207,10 @@ class FB(object):
         return load_ont_into_virtuoso.load(self._fb_dir, ONT_DIR, pw=self._pw, port=self._port)
 
     def materialize(self):
-        return materialize_fact_for_refactoring.materialize(self._proj_id,
-                                                            pw=self._pw, port=self._port, conf=self._conf)
+        return materialize_supplementary_fact.materialize(self._proj_id,
+                                                          pw=self._pw,
+                                                          port=self._port,
+                                                          conf=self._conf)
 
     def build_fb(self, mem=4):
         # initialize virtuoso
@@ -232,11 +244,15 @@ class FB(object):
         return 0
 
     def find_refactoring_pats(self, out_dir):
-        find_refactoring.find(WORK_DIR, self._proj_id, self._chgpat_dir, out_dir,
-                              self._pw, self._port, conf=self._conf)
+        find_refactoring.find(WORK_DIR, self._proj_id, self._chgpat_dir,
+                              out_dir,
+                              self._pw, self._port,
+                              per_ver=True,
+                              conf=self._conf,
+                              url_base_path=self._url_base_path)
 
     def setup(self):
-        logger.info('setting up FB for "%s"...' % self._proj_id)
+        logger.info('setting up FB for "{}"...'.format(self._proj_id))
 
         # build FB
         self.set_status('building FB...')
@@ -244,7 +260,7 @@ class FB(object):
         if rc != 0 or self._build_only:
             return
 
-        self.restart_virtuoso()
+        # self.restart_virtuoso()
 
         # find refactoring patterns
         self.set_status('finding refactoring patterns...')
@@ -253,11 +269,11 @@ class FB(object):
                 self.find_refactoring_pats(REFACT_DIR)
                 self.load_chgpat()
             except Exception as e:
-                self.set_status('failed to find refactoring patterns: %s' % e)
-                #self.reset_virtuoso(proj_id)
+                self.set_status(f'failed to find refactoring patterns: {e}')
+                # self.reset_virtuoso(proj_id)
                 return
 
-        self.restart_virtuoso()
+        # self.restart_virtuoso()
 
         if False:
             # cleanup

@@ -3,7 +3,7 @@
 '''
   decompose_patch.py
 
-  Copyright 2018-2020 Chiba Institute of Technology
+  Copyright 2018-2022 Chiba Institute of Technology
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -22,10 +22,10 @@ __author__ = 'Masatomo Hashimoto <m.hashimoto@stair.center>'
 
 import os
 import sys
-import re
-import filecmp
-import difflib
-import time
+# import re
+# import filecmp
+# import difflib
+# import time
 import logging
 
 from .plain_patch import Patch
@@ -37,34 +37,38 @@ from cca.ccautil.common import setup_logger
 logger = logging.getLogger()
 
 EXT_TBL = {
-    'java'    : ['.java','.jj','.jjt','.properties'],
-    'python'  : ['.py'],
-    'fortran' : ['.f','.for','.h90','.f90','.f95','.f03','.f08',
-                 '.F','.FOR','.H90','.F90','.F95','.F03','.F08'],
-    'c'       : ['.c','.h'],
-    'cpp'     : ['.C','.H','.cpp','.hpp','.cc','.hh'],
-    'verilog' : ['.v'],
+    'java': ['.java', '.jj', '.jjt', '.properties'],
+    'python': ['.py'],
+    'fortran': ['.f', '.for', '.h90', '.f90', '.f95', '.f03', '.f08',
+                '.F', '.FOR', '.H90', '.F90', '.F95', '.F03', '.F08'],
+    'c': ['.c', '.h'],
+    'cpp': ['.C', '.H', '.cpp', '.hpp', '.cc', '.hh'],
+    'verilog': ['.v'],
 }
+
 
 def add_suffix(path, suffix):
     (root, ext) = os.path.splitext(path)
     r = root+suffix+ext
     return r
 
+
 def vp_to_str(vp):
     return '%s-%s' % vp
+
 
 def add_vp_suffix(path, vp):
     suffix = '_%s' % vp_to_str(vp)
     r = add_suffix(path, suffix)
     return r
 
+
 class Decomposer(object):
     def __init__(self, proj_id, conf=None, lang=None, vers=None, shuffle=0, staged=False):
 
         self._proj_id = proj_id
 
-        if conf == None:
+        if conf is None:
             self._conf = project.get_conf(proj_id)
             self._proj_dir = config.get_proj_dir(proj_id)
         else:
@@ -85,7 +89,7 @@ class Decomposer(object):
 
         self._vers = vers
 
-        self._patch_tbl = {} # (ver * ver) -> patch
+        self._patch_tbl = {}  # (ver * ver) -> patch
 
         self._shuffle = shuffle
         self._staged = staged
@@ -105,7 +109,7 @@ class Decomposer(object):
         return patch.count_hunks(hids=hids)
 
     def dump_patch(self, vp, hids, path):
-        logger.debug('%s - %s' % vp)
+        logger.debug('{} - {}'.format(*vp))
         patch_tbl = self.get_patch_tbl()
         patch = patch_tbl[vp]
         logger.debug(patch)
@@ -117,7 +121,7 @@ class Decomposer(object):
             return
 
         for vp in self._conf.vpairs:
-            logger.debug('%s - %s' % vp)
+            logger.debug('{} - {}'.format(*vp))
 
             (v1, v2) = vp
 
@@ -141,10 +145,10 @@ class Decomposer(object):
                     ps1_ = [os.path.join(dpath1, p) for p in self._conf.exclude]
                     ps2_ = [os.path.join(dpath2, p) for p in self._conf.exclude]
 
-                    logger.debug('ps1=%s' % ps1)
-                    logger.debug('ps2=%s' % ps2)
-                    logger.debug('ps1_=%s' % ps1_)
-                    logger.debug('ps2_=%s' % ps2_)
+                    logger.debug(f'ps1={ps1}')
+                    logger.debug(f'ps2={ps2}')
+                    logger.debug(f'ps1_={ps1_}')
+                    logger.debug(f'ps2_={ps2_}')
 
                     def filt(path):
                         b1 = any([path.startswith(p1) for p1 in ps1])
@@ -153,7 +157,7 @@ class Decomposer(object):
                         b4 = all([not path.startswith(p1) for p1 in ps1_])
                         b5 = all([not path.startswith(p2) for p2 in ps2_])
                         b = (b1 or b2) and b3 and b4 and b5
-                        #logger.debug('%s -> %s' % (path, b))
+                        # logger.debug('%s -> %s' % (path, b))
                         return b
 
                 patch = Patch(dpath1, dpath2, filt=filt, shuffle=self._shuffle, staged=self._staged)
@@ -162,8 +166,7 @@ class Decomposer(object):
 
                 self._patch_tbl[vp] = patch
 
-                logger.debug('(%s, %s) --> %s' % (v1, v2, patch))
-
+                logger.debug(f'({v1}, {v2}) --> {patch}')
 
 
 def main():
@@ -189,7 +192,6 @@ def main():
     parser.add_argument('--ver', dest='vers', action='append', default=None,
                         metavar='VER', type=str, help='specify versions')
 
-
     args = parser.parse_args()
 
     log_level = logging.WARNING
@@ -206,7 +208,7 @@ def main():
     if args.outfile:
         patch_tbl = decomp.get_patch_tbl()
         for (vp, patch) in patch_tbl.items():
-            logger.debug('%s - %s' % vp)
+            logger.debug('{} - {}'.format(*vp))
             logger.debug(patch)
             outfile = add_vp_suffix(args.outfile, vp)
             with open(outfile, 'w') as f:

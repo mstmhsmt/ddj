@@ -3,7 +3,7 @@
 '''
   ddj.py
 
-  Copyright 2020 Chiba Institute of Technology
+  Copyright 2020-2022 Chiba Institute of Technology
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ __author__ = 'Masatomo Hashimoto <m.hashimoto@stair.center>'
 
 import sys
 import os
-import time
+# import time
 import logging
 
 from .common import VAR_DIR, FACT_DIR, DD_DIR, LOG_DIR, FB_DIR
@@ -53,6 +53,7 @@ STAT_FILE = os.path.join(VAR_DIR, 'status')
 
 #
 
+
 def set_status(mes):
     logger.log(DEFAULT_LOGGING_LEVEL, mes)
     try:
@@ -60,6 +61,7 @@ def set_status(mes):
             f.write(mes)
     except Exception as e:
         logger.warning(str(e))
+
 
 def shutdown_virtuoso(proj_id):
     if misc.is_virtuoso_running():
@@ -84,7 +86,8 @@ def main():
                         help='specify build script at proj_dir/v_good/')
 
     parser.add_argument('--test-script', type=str, default='test.sh',
-                        help='specify script at proj_dir/v_good/ that returns test result (PASS|FAIL|UNRESOLVED)')
+                        help=('specify script at proj_dir/v_good/ that returns test result'
+                              ' (PASS|FAIL|UNRESOLVED)'))
 
     parser.add_argument('--proj-id', type=str, metavar='PROJ_ID', default=None,
                         help='specify project id (dirname of PROJ_DIR is used by default)')
@@ -122,7 +125,8 @@ def main():
     parser.add_argument('--modified-stmt-rate-thresh', dest='modified_stmt_rate_thresh',
                         default=MODIFIED_STMT_RATE_THRESH,
                         metavar='R', type=float,
-                        help='suppress level 1+ statement grouping when modified statement rate is less than R')
+                        help=('suppress level 1+ statement grouping'
+                              ' when modified statement rate is less than R'))
 
     parser.add_argument('--use-cache', dest='usecache', action='store_true',
                         help='use cached diffast results')
@@ -151,13 +155,13 @@ def main():
 
     args = parser.parse_args()
 
-    log_level = DEFAULT_LOGGING_LEVEL#logging.WARNING
+    log_level = DEFAULT_LOGGING_LEVEL  # logging.WARNING
     if args.verbose:
         log_level = logging.INFO
     if args.debug:
         log_level = logging.DEBUG
 
-    if args.proj_id == None:
+    if args.proj_id is None:
         proj_id = os.path.basename(args.proj_dir)
     else:
         proj_id = args.proj_id
@@ -169,7 +173,8 @@ def main():
 
     ensure_dir(LOG_DIR)
 
-    setup_logger(logger, log_level, log_file=os.path.join(LOG_DIR, '{}.{}-{}.ddj.log'.format(proj_id, v_good, v_bad)))
+    setup_logger(logger, log_level,
+                 log_file=os.path.join(LOG_DIR, f'{proj_id}.{v_good}-{v_bad}.ddj.log'))
 
     setup_factbase.logger = logger
     misc.logger = logger
@@ -182,21 +187,21 @@ def main():
 
     installer_path = os.path.join(args.proj_dir, DEPENDENCIES_INSTALLER)
     if os.path.exists(installer_path):
-        set_status('executing {}...'.format(DEPENDENCIES_INSTALLER))
+        set_status(f'executing {DEPENDENCIES_INSTALLER}...')
         proc.system(installer_path)
 
     # setup config
     conf = Config()
-    conf.proj_id  = proj_id
+    conf.proj_id = proj_id
     conf.lang = 'java'
     conf.proj_path = args.proj_dir
     conf.vkind = VKIND_VARIANT
     conf.include = args.include
     conf.vpairs = [(v_good, v_bad)]
-    conf.vers = [x for l in conf.vpairs for x in l]
+    conf.vers = [x for xl in conf.vpairs for x in xl]
     conf.get_long_name = lambda x: x
     conf.finalize()
-    logger.info('\n{}'.format(conf))
+    logger.info(f'\n{conf}')
 
     # diff dirs
     ensure_dir(DIFF_CACHE_DIR)
@@ -226,25 +231,25 @@ def main():
                   use_sim=True,
                   sim_thresh=FILE_SIM_THRESH,
                   quiet=False
-    )
-    cost      = r['cost']
+                  )
+    cost = r['cost']
     nmappings = r['nmappings']
     nrelabels = r['nrelabels']
     try:
         nnodes1 = r['nnodes1']
         nnodes2 = r['nnodes2']
-        nnodes  = r['nnodes']
+        nnodes = r['nnodes']
     except KeyError:
         logger.warning('failed to get total number of nodes')
         nnodes1 = srcdiff.count_nodes([dir_good])
         nnodes2 = srcdiff.count_nodes([dir_bad])
-        nnodes  = nnodes1 + nnodes2
+        nnodes = nnodes1 + nnodes2
     dist = 0
     sim = 0
     if nmappings > 0:
         dist = float(cost) / float(nmappings)
     if nnodes > 0:
-        sim  = float(2 * (nmappings - nrelabels) + nrelabels) / float(nnodes)
+        sim = float(2 * (nmappings - nrelabels) + nrelabels) / float(nnodes)
     logger.info('nodes: {} -> {}'.format(nnodes1, nnodes2))
     logger.info('edit distance: {}'.format(cost))
     logger.info('similarity: {}'.format(sim))
@@ -264,8 +269,10 @@ def main():
 
     set_status('starting {}...'.format(args.algo))
     ok = ddjava.run(args.algo, proj_id, dd_root, src_dir=args.proj_dir, conf=conf,
-                    build_script=args.build_script, test_script=args.test_script, staged=args.staged,
-                    keep_going=keep_going, shuffle=args.shuffle, custom_split=args.custom_split,
+                    build_script=args.build_script, test_script=args.test_script,
+                    staged=args.staged,
+                    keep_going=keep_going, shuffle=args.shuffle,
+                    custom_split=args.custom_split,
                     noresolve=args.noresolve, noref=args.noref, nochg=args.nochg,
                     max_stmt_level=args.max_stmt_level,
                     modified_stmt_rate_thresh=args.modified_stmt_rate_thresh,
@@ -280,11 +287,10 @@ def main():
         set_status('making text patches...')
         cmd = os.path.join(os.path.dirname(sys.argv[0]), 'make_text_patches_for_proj.sh')
         cmd += ' {} {} {} {}'.format(proj_id, args.proj_dir, v_good, v_bad)
-        logger.info('cmd={}'.format(cmd))
+        logger.info(f'cmd={cmd}')
         proc.system(cmd)
 
     set_status('finished.')
-
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@
 '''
   misc.py
 
-  Copyright 2020 Chiba Institute of Technology
+  Copyright 2020-2022 Chiba Institute of Technology
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -36,12 +36,15 @@ def get_timestamp():
     ts = datetime.now().isoformat()
     return ts
 
+
 def get_custom_timestamp():
     ts = datetime.now().strftime('%Y%m%dT%H%M%S')
     return ts
 
+
 def gen_password():
     return 'x'+uuid4().hex[0:7]
+
 
 def touch(path):
     p = None
@@ -49,19 +52,21 @@ def touch(path):
         with open(path, 'w') as f:
             f.write(os.path.basename(path))
             p = path
-    except Exception as e:
+    except Exception:
         pass
     return p
+
 
 def rm(path):
     stat = 0
     if os.path.exists(path):
         try:
             os.remove(path)
-        except Exception as e:
-            logger.warning('failed to remove "{}"'.format(path))
+        except Exception:
+            logger.warning(f'failed to remove "{path}"')
             stat = 1
     return stat
+
 
 def rmdir(path):
     stat = 0
@@ -71,10 +76,11 @@ def rmdir(path):
                 os.remove(path)
             else:
                 shutil.rmtree(path)
-        except Exception as e:
-            logger.warning('failed to remove "{}"'.format(path))
+        except Exception:
+            logger.warning(f'failed to remove "{path}"')
             stat = 1
     return stat
+
 
 def ensure_dir(d):
     b = True
@@ -82,9 +88,10 @@ def ensure_dir(d):
         try:
             os.makedirs(d)
         except Exception as e:
-            logger.warning('{}'.format(e))
+            logger.warning(f'{e}')
             b = False
     return b
+
 
 def clear_dir(dpath, exclude=[]):
     stat = 0
@@ -93,7 +100,7 @@ def clear_dir(dpath, exclude=[]):
             if fn not in exclude:
                 p = os.path.join(dpath, fn)
                 rc = 0
-                logger.info('removing "{}"...'.format(p))
+                logger.info(f'removing "{p}"...')
                 if os.path.isdir(p):
                     rc = rmdir(p)
                 else:
@@ -101,6 +108,7 @@ def clear_dir(dpath, exclude=[]):
                 if rc != 0:
                     stat = rc
     return stat
+
 
 def clear_dirs(dirs):
     stat = 0
@@ -110,6 +118,7 @@ def clear_dirs(dirs):
             stat = rc
     return stat
 
+
 def is_virtuoso_running():
     b = False
     for p in psutil.process_iter():
@@ -117,4 +126,3 @@ def is_virtuoso_running():
             b = True
             break
     return b
-

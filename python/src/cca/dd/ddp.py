@@ -3,7 +3,7 @@
 '''
   ddp.py
 
-  Copyright 2020 Chiba Institute of Technology
+  Copyright 2020-2022 Chiba Institute of Technology
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ __author__ = 'Masatomo Hashimoto <m.hashimoto@stair.center>'
 
 import sys
 import os
-import time
+# import time
 import logging
 
 from .common import DD_DIR, LOG_DIR, VAR_DIR, DEPENDENCIES_INSTALLER
@@ -47,6 +47,7 @@ STAT_FILE = os.path.join(VAR_DIR, 'status')
 
 #
 
+
 def set_status(mes):
     logger.log(DEFAULT_LOGGING_LEVEL, mes)
     try:
@@ -70,7 +71,8 @@ def main():
                         help='specify build script at proj_dir/v_good/')
 
     parser.add_argument('--test-script', type=str, default='test.sh',
-                        help='specify script at proj_dir/v_good/ that returns test result (PASS|FAIL|UNRESOLVED)')
+                        help=('specify script at proj_dir/v_good/'
+                              ' that returns test result (PASS|FAIL|UNRESOLVED)'))
 
     parser.add_argument('--proj-id', type=str, metavar='PROJ_ID', default=None,
                         help='project id (dirname of PROJ_DIR is used by default)')
@@ -78,7 +80,8 @@ def main():
     parser.add_argument('--include', type=str, metavar='DIR', action='append', default=[],
                         help='analyze only sub-directories (relative paths)')
 
-    parser.add_argument('--lang', type=str, metavar='LANG', action='append', choices=['java', 'python'],
+    parser.add_argument('--lang', type=str, metavar='LANG', action='append',
+                        choices=['java', 'python'],
                         help='specify languages {%(choices)s}')
 
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
@@ -102,10 +105,9 @@ def main():
     parser.add_argument('--staged', dest='staged', action='store_true',
                         help='enable staging')
 
-
     args = parser.parse_args()
 
-    log_level = DEFAULT_LOGGING_LEVEL#logging.WARNING
+    log_level = DEFAULT_LOGGING_LEVEL  # logging.WARNING
     if args.verbose:
         log_level = logging.INFO
     if args.debug:
@@ -123,7 +125,7 @@ def main():
 
     ###
 
-    if args.proj_id == None:
+    if args.proj_id is None:
         proj_id = os.path.basename(args.proj_dir)
     else:
         proj_id = args.proj_id
@@ -131,38 +133,39 @@ def main():
     v_good = args.v_good
     v_bad = args.v_bad
 
-    keep_going = True#args.keep_going
+    keep_going = True  # args.keep_going
 
     installer_path = os.path.join(args.proj_dir, DEPENDENCIES_INSTALLER)
     if os.path.exists(installer_path):
-        set_status('executing {}...'.format(DEPENDENCIES_INSTALLER))
+        set_status(f'executing {DEPENDENCIES_INSTALLER}...')
         proc.system(installer_path)
 
     # setup config
     conf = Config()
-    conf.proj_id  = proj_id
+    conf.proj_id = proj_id
     conf.langs = args.lang
     conf.proj_path = args.proj_dir
     conf.vkind = VKIND_VARIANT
     conf.include = args.include
     conf.vpairs = [(v_good, v_bad)]
-    conf.vers = [x for l in conf.vpairs for x in l]
+    conf.vers = [x for xl in conf.vpairs for x in xl]
     conf.get_long_name = lambda x: x
     conf.finalize()
     logger.info('\n{}'.format(conf))
 
     # DD
     set_status('starting {}...'.format(args.algo))
-    ok = ddplain.run(args.algo, proj_id, DD_DIR, src_dir=args.proj_dir, vers=[v_good, v_bad], conf=conf,
+    ok = ddplain.run(args.algo, proj_id, DD_DIR, src_dir=args.proj_dir, vers=[v_good, v_bad],
+                     conf=conf,
                      build_script=args.build_script, test_script=args.test_script,
-                     keep_going=keep_going, shuffle=args.shuffle, greedy=args.greedy, staged=args.staged,
-                     set_status=set_status)
+                     keep_going=keep_going, shuffle=args.shuffle, greedy=args.greedy,
+                     staged=args.staged, set_status=set_status)
 
     if ok:
         # count tokens in patch
         cmd = os.path.join(os.path.dirname(sys.argv[0]), 'count_tokens_in_patch_for_proj.sh')
         cmd += ' {} {} {} {}'.format(proj_id, args.proj_dir, v_good, v_bad)
-        logger.info('cmd={}'.format(cmd))
+        logger.info(f'cmd={cmd}')
         proc.system(cmd)
 
     set_status('finished.')

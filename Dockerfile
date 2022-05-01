@@ -9,17 +9,13 @@ COPY configs /opt/cca/configs/
 RUN set -x && \
     cd /root && \
     apt-get update && \
-    env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gnupg ca-certificates && \
-    echo "deb https://downloads.skewed.de/apt focal main" > /etc/apt/sources.list.d/gt.list && \
-    apt-key adv --no-tty --keyserver keys.openpgp.org --recv-key 612DEFB798507F25 && \
-    apt-get update && \
     env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             psmisc time \
             locales locales-all nkf \
             ant ant-optional maven pcregrep \
             python3-distutils \
             python3-psutil \
-            python3-graph-tool \
+            python3-networkx \
             curl subversion && \
     pip3 install simplejson ortools
 
