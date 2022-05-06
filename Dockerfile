@@ -33,7 +33,7 @@ RUN set -x && \
 
 ENV PATH $PATH:/opt/defects4j/framework/bin
 
-# For install helper scripts
+# For installing helper scripts
 
 COPY python /root/python
 
