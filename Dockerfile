@@ -1,4 +1,4 @@
-FROM codinuum/cca:devel
+FROM codinuum/cca:devel2404
 
 MAINTAINER mstmhsmt
 
@@ -12,20 +12,29 @@ RUN set -x && \
     env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             psmisc time \
             locales locales-all nkf \
-            ant ant-optional maven pcregrep \
-            python3-distutils \
+            ant ant-optional maven \
+            pcregrep \
+            python3-build \
             python3-psutil \
             python3-networkx \
+            python3-absl \
+            python3-simplejson \
             curl subversion && \
-    pip3 install simplejson ortools
+    pip3 install ortools --break-system-packages && \
+    cd /usr/lib/jvm && \
+    ln -s java-8-openjdk-* java-8-openjdk
 
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk
 
 # For installing Defects4J
 
 RUN set -x && \
     env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libdbi-perl libdbd-csv-perl liburi-perl libjson-perl libjson-parse-perl && \
+        libdbi-perl \
+        libdbd-csv-perl \
+        liburi-perl \
+        libjson-perl \
+        libjson-parse-perl && \
     cd /opt && \
     git clone https://github.com/rjust/defects4j.git && \
     cd defects4j && \
@@ -40,7 +49,7 @@ COPY python /root/python
 RUN set -x && \
     cd /root/python && \
     python3 -m build && \
-    pip3 install dist/ddj-*.tar.gz && \
+    pip3 install dist/ddj-*.tar.gz --break-system-packages && \
     cd /root && \
     rm -r python
 
