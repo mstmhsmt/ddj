@@ -3,7 +3,7 @@ FROM codinuum/cca:devel2404
 MAINTAINER mstmhsmt
 
 COPY cca /opt/cca/
-COPY regression_examples /opt/cca/regression_examples/
+# COPY regression_examples /opt/cca/regression_examples/
 COPY configs /opt/cca/configs/
 
 RUN set -x && \
