@@ -17561,7 +17561,7 @@ GRAPH <%(fb_ns)s%%(proj_id)s> {
             ?vdecl_ java:successor ?assign0_ OPTION (TRANSITIVE,
                                                      T_DISTINCT, T_NO_CYCLES, T_MIN(1)) .
             #?assign0_ java:successor ?stmt_ OPTION (TRANSITIVE,
-                                                     T_DISTINCT, T_NO_CYCLES, T_MIN(1)) .
+            #                                        T_DISTINCT, T_NO_CYCLES, T_MIN(1)) .
             ?stmt_ ^java:successor ?assign0_ OPTION (TRANSITIVE,
                                                      T_DISTINCT, T_NO_CYCLES, T_MIN(1)) .
 #          }

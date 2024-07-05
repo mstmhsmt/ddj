@@ -3,7 +3,7 @@
 '''
   misc.py
 
-  Copyright 2020-2022 Chiba Institute of Technology
+  Copyright 2020-2024 Chiba Institute of Technology
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -21,11 +21,14 @@
 __author__ = 'Masatomo Hashimoto <m.hashimoto@stair.center>'
 
 import os
+import json
 import shutil
 from datetime import datetime
 from uuid import uuid4
 import psutil
 import logging
+
+from .conf import VIRTUOSO_PORT
 
 ###
 
@@ -119,10 +122,32 @@ def clear_dirs(dirs):
     return stat
 
 
-def is_virtuoso_running():
+def is_virtuoso_running(port=VIRTUOSO_PORT):
     b = False
     for p in psutil.process_iter():
-        if p.name() == 'virtuoso-t':
-            b = True
-            break
+        try:
+            if p.name() == 'virtuoso-t':
+                try:
+                    for conn in p.connections(kind='tcp'):
+                        if conn.laddr.port == port:
+                            b = True
+                            break
+                    if b:
+                        break
+                except Exception as e:
+                    logger.warning(f'{e}: port={port}')
+        except Exception as e:
+            logger.warning(f'{e}: port={port}')
+            pass
     return b
+
+
+def read_json(data_path):
+    d = None
+    try:
+        with open(data_path, 'r') as f:
+            d = json.load(f)
+    except Exception as e:
+        logger.warning(f'{data_path}: {e}')
+
+    return d

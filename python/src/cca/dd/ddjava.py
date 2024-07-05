@@ -25,7 +25,7 @@ import os
 from uuid import uuid4
 import shutil
 import json
-from ortools.algorithms import pywrapknapsack_solver as knap
+from ortools.algorithms.python import knapsack_solver as knap
 import logging
 
 from .common import VIRTUOSO_PW, VIRTUOSO_PORT
@@ -304,15 +304,16 @@ class JavaDD(DD, object):
             else:
                 return 0
         else:
-            cmd = '%s %s' % (self._build_script, path)
+            cmd = f'{self._build_script} {path}'
             return proc.system(cmd)
 
     def do_test(self, path):
         if self._test_script is None:
-            return proc.check_output('./'+self._test_script_name, cwd=path)
+            return proc.check_output('./'+self._test_script_name, cwd=path,
+                                     text=True, encoding='utf-8', errors='replace')
         else:
             result = DD.UNRESOLVED
-            cmd = '{} {}'.format(self._test_script, path)
+            cmd = f'{self._test_script} {path}'
             with proc.PopenContext(cmd) as p:
                 (o, e) = p.communicate()
                 result = o
@@ -328,7 +329,7 @@ class JavaDD(DD, object):
                 r = self._decomp.remove_dependency_g(self._vp, sub)
                 if r:
                     d = len(sub) - len(r)
-                    logger.info('{} components: d={}'.format(len(sub), d))
+                    logger.info(f'{len(sub)} components: d={d}')
                     v += abs(d)
         logger.info(f'v={v}')
         return v
@@ -517,7 +518,7 @@ class JavaDD(DD, object):
 
         result = self.do_test(dest_dir)
 
-        logger.info('{} (size={}) -> {}'.format(uid, len(c), result))
+        logger.info(f'{uid} (size={len(c)}) -> {result}')
 
         if result == DD.FAIL:
             self.update_progress(result, (self._global_patch_count,

@@ -20,7 +20,7 @@ RUN set -x && \
             python3-absl \
             python3-simplejson \
             curl subversion && \
-    pip3 install ortools --break-system-packages && \
+    pip3 install pypyodbc ortools --break-system-packages && \
     cd /usr/lib/jvm && \
     ln -s java-8-openjdk-* java-8-openjdk
 

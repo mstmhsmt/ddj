@@ -39,7 +39,7 @@ from cca.factutil.const import SEP
 from cca.factutil.entity import SourceCodeEntity
 
 from .queries import K_INS, K_DEL, K_REL, K_MOV, KINDS
-from .queries import QUERY_TBL, QUERY_LIST, REF_QUERY_TBL
+from .queries import QUERY_LIST, REF_QUERY_TBL
 from .queries import OTH_QUERY_TBL, OTH_DIR_QUERY_TBL
 from .queries import STMT_QUERY, MODIFIED_STMT_QUERY, FILE_LOC_QUERY
 from .queries import CONTAINING_FILE_QUERY, MAPPED_FILE_QUERY
@@ -49,6 +49,8 @@ from .queries import ADDED_METH_QUERY, CONTAINING_STMT_QUERY
 from .queries import MAPPED_STMT_QUERY, REMOVED_STMT_QUERY
 from .queries import ADDED_STMT_QUERY, VER_PAIR_QUERY, Q_DELTA_XML
 from .queries import Q_MODIFIED_PATH, VER_QUERY, MAPPED_METH_QUERY
+
+from . import queries
 
 logger = logging.getLogger()
 
@@ -74,12 +76,12 @@ et.register_namespace('xdd', XDD_NS)
 
 def make_make_query_id(lang):
     def f(n):
-        return 'Q_%s_%s' % (n.upper(), lang.upper())
+        return f'queries.Q_{n.upper()}_{lang.upper()}'
     return f
 
 
 def make_query_id(n):
-    return 'Q_%s' % n.upper()
+    return f'queries.Q_{n.upper()}'
 
 
 def cids_to_string(cids):
@@ -87,11 +89,11 @@ def cids_to_string(cids):
 
 
 def mkgid(i):
-    return 'G%d' % i
+    return f'G{i}'
 
 
 def mktmpgid(i):
-    return 'g%d' % i
+    return f'g{i}'
 
 
 def isgid(x):
@@ -1374,7 +1376,7 @@ class Decomposer(object):
                   outfile=None, staged=False, shuffle=0, optout=False):
 
         qtbl = dict([(n, eval(self.make_query_id(n)))
-                     for n in QUERY_TBL.get(self._lang, [])])
+                     for n in queries.QUERY_TBL.get(self._lang, [])])
         for n in QUERY_LIST:
             qtbl[n] = eval(make_query_id(n))
 
